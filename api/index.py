@@ -152,7 +152,7 @@ def validation_node(state: AgentState):
                 # Override the response with acknowledgment message
                 acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
-If you have any urgent concerns, please contact our support team directly."""
+If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
                 
                 return {
                     "validation_status": "COMPLAINT/ISSUE - Logged to Google Sheets",
@@ -162,7 +162,7 @@ If you have any urgent concerns, please contact our support team directly."""
                 # No credentials, but still show acknowledgment
                 acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
-If you have any urgent concerns, please contact our support team directly."""
+If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
                 return {
                     "validation_status": "COMPLAINT/ISSUE - No Google Sheets credentials configured",
                     "final_response": acknowledgment
@@ -171,7 +171,7 @@ If you have any urgent concerns, please contact our support team directly."""
             # Error logging, but still show acknowledgment
             acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
-If you have any urgent concerns, please contact our support team directly."""
+If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
             return {
                 "validation_status": f"COMPLAINT/ISSUE - Error logging: {str(e)}",
                 "final_response": acknowledgment
