@@ -99,27 +99,35 @@ def validation_node(state: AgentState):
     query = state['query']
     final_response = state['final_response']
     
-    # Use LLM to classify if the query was adequately answered
-    system_prompt = SystemMessage(content="""You are a quality assurance agent.
-    Your job is to determine if the user's query was adequately answered.
+    # First, classify the query type (complaint, feature request, bug, or normal question)
+    system_prompt = SystemMessage(content="""You are a query classifier for a customer support system.
+    Your job is to classify the user's query into one of these categories:
     
-    Classify the query as:
-    - "ANSWERED" if the response provides clear, actionable steps or information.
-    - "UNANSWERED" if:
-      * The query is a complaint about a feature
-      * The query is a feature request
-      * The response is vague or doesn't address the query
-      * The user is reporting a bug or issue
+    Classify as "COMPLAINT_OR_ISSUE" if the query contains:
+    - Complaints about system performance (slow, crashing, freezing, etc.)
+    - Bug reports or error messages
+    - Feature requests or suggestions for new features
+    - Complaints about UI/UX (colors, design, usability)
+    - Reports of broken functionality
+    - Frustration with the system
     
-    Respond with ONLY one word: either "ANSWERED" or "UNANSWERED".""")
+    Classify as "NORMAL_QUESTION" if the query is:
+    - A how-to question
+    - Asking for instructions or guidance
+    - Seeking information about existing features
     
-    user_prompt = HumanMessage(content=f"User Query: {query}\n\nAssistant Response: {final_response}")
+    IMPORTANT: Focus ONLY on the user's query, NOT on the assistant's response.
+    Even if the assistant provides a good answer to a complaint, it's still a complaint.
+    
+    Respond with ONLY one phrase: either "COMPLAINT_OR_ISSUE" or "NORMAL_QUESTION".""")
+    
+    user_prompt = HumanMessage(content=f"User Query: {query}")
     
     classification = llm.invoke([system_prompt, user_prompt])
-    status = classification.content.strip().upper()
+    query_type = classification.content.strip().upper()
     
-    # If unanswered, log to Google Sheets
-    if "UNANSWERED" in status:
+    # If it's a complaint or issue, log to Google Sheets
+    if "COMPLAINT_OR_ISSUE" in query_type:
         try:
             # Get credentials from environment
             creds_json = os.getenv("GOOGLE_CREDENTIALS_JSON")
@@ -141,13 +149,13 @@ def validation_node(state: AgentState):
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 sheet.append_row([timestamp, query, final_response])
                 
-                return {"validation_status": "UNANSWERED - Logged to Google Sheets"}
+                return {"validation_status": "COMPLAINT/ISSUE - Logged to Google Sheets"}
             else:
-                return {"validation_status": "UNANSWERED - No Google Sheets credentials configured"}
+                return {"validation_status": "COMPLAINT/ISSUE - No Google Sheets credentials configured"}
         except Exception as e:
-            return {"validation_status": f"UNANSWERED - Error logging: {str(e)}"}
+            return {"validation_status": f"COMPLAINT/ISSUE - Error logging: {str(e)}"}
     
-    return {"validation_status": "ANSWERED"}
+    return {"validation_status": "NORMAL_QUESTION - Not logged"}
 
 # Build the graph
 workflow = StateGraph(AgentState)
