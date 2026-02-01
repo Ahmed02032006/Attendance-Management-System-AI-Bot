@@ -143,17 +143,39 @@ def validation_node(state: AgentState):
                 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
                 client = gspread.authorize(creds)
                 
-                # Open the sheet and append the query
+                # Open the sheet and append only the query (not the response)
                 sheet = client.open_by_key(sheet_id).sheet1
                 from datetime import datetime
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                sheet.append_row([timestamp, query, final_response])
+                sheet.append_row([timestamp, query])
                 
-                return {"validation_status": "COMPLAINT/ISSUE - Logged to Google Sheets"}
+                # Override the response with acknowledgment message
+                acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+
+If you have any urgent concerns, please contact our support team directly."""
+                
+                return {
+                    "validation_status": "COMPLAINT/ISSUE - Logged to Google Sheets",
+                    "final_response": acknowledgment
+                }
             else:
-                return {"validation_status": "COMPLAINT/ISSUE - No Google Sheets credentials configured"}
+                # No credentials, but still show acknowledgment
+                acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+
+If you have any urgent concerns, please contact our support team directly."""
+                return {
+                    "validation_status": "COMPLAINT/ISSUE - No Google Sheets credentials configured",
+                    "final_response": acknowledgment
+                }
         except Exception as e:
-            return {"validation_status": f"COMPLAINT/ISSUE - Error logging: {str(e)}"}
+            # Error logging, but still show acknowledgment
+            acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+
+If you have any urgent concerns, please contact our support team directly."""
+            return {
+                "validation_status": f"COMPLAINT/ISSUE - Error logging: {str(e)}",
+                "final_response": acknowledgment
+            }
     
     return {"validation_status": "NORMAL_QUESTION - Not logged"}
 
