@@ -99,9 +99,16 @@ def validation_node(state: AgentState):
     query = state['query']
     final_response = state['final_response']
     
-    # First, classify the query type (complaint, feature request, bug, or normal question)
-    system_prompt = SystemMessage(content="""You are a query classifier for a customer support system.
+    # First, classify the query type
+    system_prompt = SystemMessage(content="""You are a query classifier for an Attendance Management System support assistant.
     Your job is to classify the user's query into one of these categories:
+    
+    Classify as "IRRELEVANT" if the query is:
+    - About topics completely unrelated to attendance management (e.g., weather, sports, cooking, general knowledge)
+    - Personal questions not related to the system
+    - Random conversations or greetings without a question
+    - Questions about other software or systems
+    - Anything that has nothing to do with attendance, teaching, students, or the attendance system
     
     Classify as "COMPLAINT_OR_ISSUE" if the query contains:
     - Complaints about system performance (slow, crashing, freezing, etc.)
@@ -112,19 +119,37 @@ def validation_node(state: AgentState):
     - Frustration with the system
     
     Classify as "NORMAL_QUESTION" if the query is:
-    - A how-to question
-    - Asking for instructions or guidance
+    - A how-to question about the attendance system
+    - Asking for instructions or guidance on using the system
     - Seeking information about existing features
+    - Questions about attendance, students, subjects, or teaching-related tasks
     
     IMPORTANT: Focus ONLY on the user's query, NOT on the assistant's response.
-    Even if the assistant provides a good answer to a complaint, it's still a complaint.
     
-    Respond with ONLY one phrase: either "COMPLAINT_OR_ISSUE" or "NORMAL_QUESTION".""")
+    Respond with ONLY one phrase: "IRRELEVANT", "COMPLAINT_OR_ISSUE", or "NORMAL_QUESTION".""")
     
     user_prompt = HumanMessage(content=f"User Query: {query}")
     
     classification = llm.invoke([system_prompt, user_prompt])
     query_type = classification.content.strip().upper()
+    
+    # Handle irrelevant queries
+    if "IRRELEVANT" in query_type:
+        polite_response = """I appreciate your question, but I'm specifically designed to assist with the Attendance Management System. 
+
+I can help you with:
+- How to mark attendance
+- Managing student records
+- Navigating the dashboard
+- Understanding system features
+- Reporting issues or suggesting improvements
+
+If you have any questions related to the attendance system, I'd be happy to help!"""
+        
+        return {
+            "validation_status": "IRRELEVANT - Polite redirect",
+            "final_response": polite_response
+        }
     
     # If it's a complaint or issue, log to Google Sheets
     if "COMPLAINT_OR_ISSUE" in query_type:
