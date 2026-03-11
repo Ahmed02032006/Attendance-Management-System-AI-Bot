@@ -99,10 +99,10 @@ def responder_node(state: AgentState):
 def validation_node(state: AgentState):
     query = state['query']
     final_response = state['final_response']
-    # Fix: Check if email exists and is not empty
-    email = state.get('email')
-    if not email or email.strip() == "":
-        email = "Not provided"
+    raw_email = state.get('email')
+
+    # ✅ FIX: Always ensure email is a non-empty string for Google Sheets
+    email = raw_email.strip() if raw_email and str(raw_email).strip() else "Not Provided"
     
     # First, classify the query type
     system_prompt = SystemMessage(content="""You are a query classifier for an Attendance Management System support assistant.
@@ -179,11 +179,11 @@ If you have any questions related to the attendance system, I'd be happy to help
                 from datetime import datetime
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
-                # Use the email from state
+                # ✅ FIX: email is already sanitized above — always a proper string
                 sheet.append_row([timestamp, email, query])
                 
                 # Override the response with acknowledgment message
-                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {f'with your email: {email}' if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback with your email: {email} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
                 
@@ -193,7 +193,7 @@ If you have any urgent concerns, please contact our support team at: m.ahmedoffi
                 }
             else:
                 # No credentials, but still show acknowledgment
-                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {f'with your email: {email}' if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback with your email: {email} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
                 return {
@@ -202,7 +202,7 @@ If you have any urgent concerns, please contact our support team at: m.ahmedoffi
                 }
         except Exception as e:
             # Error logging, but still show acknowledgment
-            acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {f'with your email: {email}' if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+            acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback with your email: {email} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
             return {
