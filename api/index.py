@@ -32,6 +32,7 @@ class AgentState(TypedDict):
     analysis: str
     final_response: str
     validation_status: str
+    email: Optional[str]
 
 # Node 1: Scraper (Vercel-friendly)
 async def scraper_node(state: AgentState):
@@ -98,6 +99,7 @@ def responder_node(state: AgentState):
 def validation_node(state: AgentState):
     query = state['query']
     final_response = state['final_response']
+    email = state.get('email', 'Not provided')  # Get email from state with default
     
     # First, classify the query type
     system_prompt = SystemMessage(content="""You are a query classifier for an Attendance Management System support assistant.
@@ -174,13 +176,11 @@ If you have any questions related to the attendance system, I'd be happy to help
                 from datetime import datetime
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
                 
-                # Get email from the request (you'll need to pass it through the state)
-                # For now, we'll get it from the initial state
-                email = state.get('email', 'Not provided')  # Add email to AgentState if needed
+                # Use the email from state
                 sheet.append_row([timestamp, email, query])
                 
                 # Override the response with acknowledgment message
-                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {'with your email: ' + email if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {f'with your email: {email}' if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
                 
@@ -190,7 +190,7 @@ If you have any urgent concerns, please contact our support team at: m.ahmedoffi
                 }
             else:
                 # No credentials, but still show acknowledgment
-                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {'with your email: ' + email if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {f'with your email: {email}' if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
                 return {
@@ -199,7 +199,7 @@ If you have any urgent concerns, please contact our support team at: m.ahmedoffi
                 }
         except Exception as e:
             # Error logging, but still show acknowledgment
-            acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {'with your email: ' + email if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+            acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {f'with your email: {email}' if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
             return {
@@ -232,7 +232,7 @@ async def query_attendance(request: QueryRequest):
         "https://attendance-management-system-fronte-two.vercel.app/teacher/dashboard",
         "https://attendance-management-system-fronte-two.vercel.app/teacher/subject",
         "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance",
-        "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance-report"  # Add new page
+        "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance-report"
     ]
     
     initial_state = {
@@ -241,11 +241,11 @@ async def query_attendance(request: QueryRequest):
         "scraped_content": "",
         "analysis": "",
         "final_response": "",
-        "validation_status": ""
+        "validation_status": "",
+        "email": request.email  # Pass email to the state
     }
     
     try:
-        # LangGraph invoke is used for the workflow
         result = await graph_app.ainvoke(initial_state)
         return {"response": result['final_response']}
     except Exception as e:
