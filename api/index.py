@@ -99,7 +99,10 @@ def responder_node(state: AgentState):
 def validation_node(state: AgentState):
     query = state['query']
     final_response = state['final_response']
-    email = state.get('email', 'Not provided')  # Get email from state with default
+    # Fix: Check if email exists and is not empty
+    email = state.get('email')
+    if not email or email.strip() == "":
+        email = "Not provided"
     
     # First, classify the query type
     system_prompt = SystemMessage(content="""You are a query classifier for an Attendance Management System support assistant.
@@ -258,4 +261,4 @@ def read_root():
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="0.0.0.0", port=8000)
-
+    
