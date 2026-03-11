@@ -1,7 +1,7 @@
 import os
 import json
 from bs4 import BeautifulSoup
-from typing import TypedDict, List
+from typing import TypedDict, List, Optional
 from dotenv import load_dotenv
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
@@ -142,6 +142,7 @@ I can help you with:
 - Managing student records
 - Navigating the dashboard
 - Understanding system features
+- Viewing attendance reports
 - Reporting issues or suggesting improvements
 
 If you have any questions related to the attendance system, I'd be happy to help!"""
@@ -151,7 +152,7 @@ If you have any questions related to the attendance system, I'd be happy to help
             "final_response": polite_response
         }
     
-    # If it's a complaint or issue, log to Google Sheets
+    # If it's a complaint or issue, log to Google Sheets with email
     if "COMPLAINT_OR_ISSUE" in query_type:
         try:
             # Get credentials from environment
@@ -168,14 +169,18 @@ If you have any questions related to the attendance system, I'd be happy to help
                 creds = ServiceAccountCredentials.from_json_keyfile_dict(creds_dict, scope)
                 client = gspread.authorize(creds)
                 
-                # Open the sheet and append only the query (not the response)
+                # Open the sheet and append query with email
                 sheet = client.open_by_key(sheet_id).sheet1
                 from datetime import datetime
                 timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
-                sheet.append_row([timestamp, query])
+                
+                # Get email from the request (you'll need to pass it through the state)
+                # For now, we'll get it from the initial state
+                email = state.get('email', 'Not provided')  # Add email to AgentState if needed
+                sheet.append_row([timestamp, email, query])
                 
                 # Override the response with acknowledgment message
-                acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {'with your email: ' + email if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
                 
@@ -185,7 +190,7 @@ If you have any urgent concerns, please contact our support team at: m.ahmedoffi
                 }
             else:
                 # No credentials, but still show acknowledgment
-                acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+                acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {'with your email: ' + email if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
                 return {
@@ -194,7 +199,7 @@ If you have any urgent concerns, please contact our support team at: m.ahmedoffi
                 }
         except Exception as e:
             # Error logging, but still show acknowledgment
-            acknowledgment = """Thank you for bringing this to our attention. We have recorded your feedback and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
+            acknowledgment = f"""Thank you for bringing this to our attention. We have recorded your feedback {'with your email: ' + email if email != 'Not provided' else ''} and our team will review this issue. We appreciate your patience and will work on resolving this as soon as possible.
 
 If you have any urgent concerns, please contact our support team at: m.ahmedofficial677@gmail.com"""
             return {
@@ -219,13 +224,15 @@ graph_app = workflow.compile()
 
 class QueryRequest(BaseModel):
     query: str
+    email: Optional[str] = None
 
 @app.post("/api/query")
 async def query_attendance(request: QueryRequest):
     urls = [
         "https://attendance-management-system-fronte-two.vercel.app/teacher/dashboard",
         "https://attendance-management-system-fronte-two.vercel.app/teacher/subject",
-        "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance"
+        "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance",
+        "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance-report"  # Add new page
     ]
     
     initial_state = {

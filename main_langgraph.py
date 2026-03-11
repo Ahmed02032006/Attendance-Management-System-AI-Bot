@@ -130,7 +130,8 @@ def run_assistant(user_query: str):
     urls = [
         "https://attendance-management-system-fronte-two.vercel.app/teacher/dashboard",
         "https://attendance-management-system-fronte-two.vercel.app/teacher/subject",
-        "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance"
+        "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance",
+        "https://attendance-management-system-fronte-two.vercel.app/teacher/attendance-report"  # Add new page
     ]
     
     initial_state = {
